@@ -60,6 +60,12 @@ impl BitcoinCli {
         Ok(())
     }
 
+    /// Unlock all locked UTXOs (clears stale locks from prior sessions).
+    pub fn unlock_all(&self, wallet: &str) -> Result<()> {
+        self.call(&[&format!("-rpcwallet={}", wallet), "lockunspent", "true"])?;
+        Ok(())
+    }
+
     /// Decode a script to get its address.
     pub fn decode_script(&self, spk_hex: &str) -> Result<Value> {
         self.call_json(&["decodescript", spk_hex])

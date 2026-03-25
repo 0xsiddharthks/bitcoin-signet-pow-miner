@@ -129,6 +129,9 @@ fn do_claim(
     let tap_infos = builder::build_tap_info()?;
     let dest_script = builder::parse_address(address)?;
 
+    // Clear stale locks from prior sessions so all UTXOs are visible
+    let _ = cli.unlock_all(wallet);
+
     // List unspent coins
     let utxos = cli.list_unspent(wallet)?;
     log::debug!("Found {} UTXOs in wallet", utxos.len());
