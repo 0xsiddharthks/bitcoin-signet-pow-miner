@@ -129,9 +129,6 @@ fn do_claim(
     let tap_infos = builder::build_tap_info()?;
     let dest_script = builder::parse_address(address)?;
 
-    // Clear stale locks from prior sessions so all UTXOs are visible
-    let _ = cli.unlock_all(wallet);
-
     // List unspent coins
     let utxos = cli.list_unspent(wallet)?;
     log::debug!("Found {} UTXOs in wallet", utxos.len());
@@ -222,6 +219,13 @@ fn main() -> Result<()> {
                 max_difficulty,
                 feerate
             );
+
+            // Clear stale locks from prior sessions once at startup
+            {
+                let cli = rpc::BitcoinCli::new(&cli_str);
+                let _ = cli.unlock_all(&wallet);
+                log::info!("Cleared stale UTXO locks");
+            }
 
             if continuous {
                 let mut claim_count = 0u32;
