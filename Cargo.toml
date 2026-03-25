@@ -1,0 +1,23 @@
+[package]
+name = "bitcoin-signet-pow-miner"
+version = "0.1.0"
+edition = "2021"
+description = "High-performance parallel PoW miner for Bitcoin Signet faucet coins"
+
+[dependencies]
+bitcoin = { version = "0.32", features = ["serde", "rand-std"] }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+rand = "0.8"
+log = "0.4"
+env_logger = "0.11"
+anyhow = "1"
+num_cpus = "1"
+hex = "0.4"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
