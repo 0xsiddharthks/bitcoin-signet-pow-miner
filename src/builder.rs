@@ -267,17 +267,12 @@ pub fn build_claim_tx(
 
     tx.input[0].witness = witness;
 
-    // Serialize and compute txid
+    // Serialize the complete transaction (with witness)
     let raw_tx = serialize(&tx);
 
-    // Bitcoin txid = double SHA256 of non-witness serialization, reversed
-    // For P2P INV, we need the hash in internal byte order
-    // The tx.compute_txid() returns it in display order (reversed),
-    // but for P2P we need the raw hash256 of the non-witness serialization.
-    // Actually, bitcoin's Txid stores in internal order, and to_byte_array()
-    // gives the internal representation. Let me compute it directly.
-    let tx_no_witness = serialize_no_witness(&tx);
-    let inv_hash = grinder::double_sha256(&tx_no_witness);
+    // For P2P INV, the Python code uses hash256 of the full (witness) serialization.
+    // This is the wtxid, matching the Python powcoins behavior.
+    let inv_hash = grinder::double_sha256(&raw_tx);
 
     Ok((raw_tx, inv_hash))
 }

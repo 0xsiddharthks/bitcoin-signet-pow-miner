@@ -105,12 +105,33 @@ fn build_ping_payload() -> Vec<u8> {
     nonce.to_le_bytes().to_vec()
 }
 
+/// Read exactly `n` bytes, retrying on WouldBlock/EAGAIN.
+fn read_exact_retry(stream: &mut TcpStream, buf: &mut [u8], deadline: std::time::Instant) -> Result<()> {
+    let mut filled = 0;
+    while filled < buf.len() {
+        if std::time::Instant::now() > deadline {
+            return Err(anyhow!("Read timeout"));
+        }
+        match stream.read(&mut buf[filled..]) {
+            Ok(0) => return Err(anyhow!("Connection closed")),
+            Ok(n) => filled += n,
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                std::thread::sleep(Duration::from_millis(50));
+                continue;
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::Interrupted => continue,
+            Err(e) => return Err(e.into()),
+        }
+    }
+    Ok(())
+}
+
 /// Read a complete P2P message from the stream.
 /// Returns (command, payload).
 fn read_message(stream: &mut TcpStream) -> Result<(String, Vec<u8>)> {
+    let deadline = std::time::Instant::now() + Duration::from_secs(30);
     let mut header = [0u8; 24];
-    stream
-        .read_exact(&mut header)
+    read_exact_retry(stream, &mut header, deadline)
         .context("Failed to read P2P message header")?;
 
     // Verify magic
@@ -129,8 +150,7 @@ fn read_message(stream: &mut TcpStream) -> Result<(String, Vec<u8>)> {
     // Read payload
     let mut payload = vec![0u8; payload_len];
     if payload_len > 0 {
-        stream
-            .read_exact(&mut payload)
+        read_exact_retry(stream, &mut payload, deadline)
             .context("Failed to read P2P message payload")?;
     }
 
